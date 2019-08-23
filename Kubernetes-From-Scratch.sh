@@ -4,6 +4,7 @@
 # This script has been design to work on AWS Cloud and it usages aws cli tool to create instances and tag it. So before running it make sure you have aws cli configured with enough permission to created instances and tag it.
 # This script doesn't accept any parameter, if you need to change it's behaviour, change the applicable variable in the script.
 # It only works on systemd instances.
+# It creates kubernetes master and worker instances in a single subnet (availability zone)
 
 # Colour codes
 Clr='\[\033[0m\]' # Clear
