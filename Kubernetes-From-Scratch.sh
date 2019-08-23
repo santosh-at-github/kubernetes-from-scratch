@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# This is the main script and it should be executed from the same diretory in which the scripts has been copied else it may not be able to locate other supporting script and execution may fail.
+# This script has been design to work on AWS Cloud and it usages aws cli tool to create instances and tag it. So before running it make sure you have aws cli configured with enough permission to created instances and tag it.
+# This script doesn't accept any parameter, if you need to change it's behaviour, change the applicable variable in the script.
+# It only works on systemd instances.
+
 # Colour codes
 Clr='\[\033[0m\]' # Clear
 Bold='\033[1m'
@@ -10,8 +15,16 @@ worker_node_count=3
 controller_node_count=3
 username='ubuntu'
 region='us-east-1'
+image='ami-0cfee17793b08a293'
+instanceType='t2.large'
+AwsKeyPairName='MainPubKey'
+imaProfileName='Ec2-Instance-Role'
+securityGroup='sg-83b616fa'
+subnetId='subnet-0cc0beca7c5c9b5ee'
+PrivateKeyLocation='~/Documents/Keys/MainPrivateKey'
+
 rm_ins=''
-ssh_options="-o StrictHostKeyChecking=no -i ~/Documents/Keys/MainPrivateKey -l $username"
+ssh_options="-o StrictHostKeyChecking=no -i $PrivateKeyLocation -l $username"
 #script_dir=$(dirname $0)
 script_dir=$(pwd)
 
@@ -49,9 +62,9 @@ create_resource(){
   resource_type=$1
   count=$2
   for i in $(seq $count); do
-    instance_id=$(aws ec2 run-instances --count 1 --image-id ami-0cfee17793b08a293 \
-      --instance-type t2.large --key-name MainPubKey --iam-instance-profile Name=Ec2-Instance-Role \
-      --region $region --security-group-ids sg-83b616fa --subnet-id subnet-0cc0beca7c5c9b5ee --output text \
+    instance_id=$(aws ec2 run-instances --count 1 --image-id $image \
+      --instance-type $instanceType --key-name $AwsKeyPairName --iam-instance-profile Name=$imaProfileName \
+      --region $region --security-group-ids $securityGroup --subnet-id $subnetId --output text \
       --query 'Instances[*].InstanceId')
     instance_ip=$(aws ec2 describe-instances --instance-ids $instance_id \
       --query 'Reservations[*].Instances[*].PrivateIpAddress' --output text --region $region)
@@ -76,6 +89,7 @@ create_resource 'Worker' $worker_node_count
 create_resource 'LoadBalancer' 1
 create_resource 'Client' 1
 
+# This is my custom command, might not work for you.
 echo -e "\nTo delete Cluster Resources use below command:\n ec2kill $rm_ins"
 
 ######## Temp Data #########
@@ -284,7 +298,7 @@ EOF
 for i in $(seq $worker_node_count); do
   eval client_name=(\${Worker$i[3]})
   eval ip=(\${Worker$i[2]})
-  CMD="scp -q -o StrictHostKeyChecking=no -o User=$username -i ~/Documents/Keys/MainPrivateKey ca.pem \
+  CMD="scp -q -o StrictHostKeyChecking=no -o User=$username -i $PrivateKeyLocation ca.pem \
     $client_name-key.pem $client_name.pem $client_name.kubeconfig kube-proxy.kubeconfig $ip:~/"
   $CMD
   is_successful $? "File copy to Worker node $ip"
@@ -293,7 +307,7 @@ done
 for i in $(seq $controller_node_count); do
   eval client_name=(\${Controller$i[3]})
   eval ip=(\${Controller$i[2]})
-  CMD="scp -q -o StrictHostKeyChecking=no -o User=$username -i ~/Documents/Keys/MainPrivateKey ca.pem \
+  CMD="scp -q -o StrictHostKeyChecking=no -o User=$username -i $PrivateKeyLocation ca.pem \
     ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem admin.kubeconfig \
     kube-controller-manager.kubeconfig kube-scheduler.kubeconfig encryption-config.yaml $ip:~/"
   $CMD
@@ -342,7 +356,7 @@ ssh $ssh_options ${Controller1[2]} "kubectl get nodes"
 
 
 # Setup Client
-scp -q -o StrictHostKeyChecking=no -o User=$username -i ~/Documents/Keys/MainPrivateKey \
+scp -q -o StrictHostKeyChecking=no -o User=$username -i $PrivateKeyLocation \
   ca.pem admin-key.pem admin.pem ${Client1[2]}:~/
 ssh $ssh_options ${Client1[2]} "bash -s" < $script_dir/Client.sh "${LoadBalancer1[1]}"
 
