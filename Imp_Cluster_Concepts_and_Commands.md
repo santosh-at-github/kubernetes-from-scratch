@@ -115,6 +115,19 @@ OR use below kubectl command:
 $ kubectl create rolebinding user-rolebinding --role=user-role --user=user
 
 
+## Check Cluster
+
+1. Get component status:
+ $ kubectl get componentstatuses
+
+2. Get brief clsuter info:
+ $ kubectl cluster-info
+
+3. Check ETC status:
+ $ sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.pem --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key
+
+4. Check kubectl configuration:
+ $ kubectl config view
 
 ## VIM Shortcuts
 
@@ -146,10 +159,11 @@ Ctrl+v - Block visual mode
 ## Aliases
 source <(kubectl completion bash)
 alias k=kubectl
-alias gp="kubectl get pod "
-alias gn="kubectl get node "
-alias dp="kubectl describe pod "
-alias dn="kubectl describe node "
-alias a="kubectl apply -f "
-alias g="kubectl get "
-alias d="kubectl describe "
+alias kgp="kubectl get pod "
+alias kgn="kubectl get node "
+alias kdp="kubectl describe pod "
+alias kdn="kubectl describe node "
+alias ka="kubectl apply "
+alias kg="kubectl get "
+alias kd="kubectl describe "
+alias kD="kubectl delete "
