@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: my-depl
+  name: my-depl
+spec:
+
+  #### Rolling update ####
+  minReadySeconds: 30
+  strategy: # updateStrategy in case of DaemonSet of StatefulSet
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  ########################
+
+  replicas: 1
+  selector:
+    matchLabels:
+      run: my-depl
+  template:
+    metadata:
+      labels:
+        run: my-depl
+    spec:
+
+  #### Tolerations ####
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: "key"
+        operator: "Equal"
+        value: "value"
+        effect: "NoSchedule"
+  ########################
+
+  #### Init Containers ####
+      initContainers:
+      - image: busybox
+        name: init-my-depl
+        command: ['sh', '-c','echo "Serving from pod $HOSTNAME" > /my-volume/index.html']
+        volumeMounts:
+        - mountPath: /my-volume
+          name: my-vol
+  ########################
+
+      containers:
+      - image: nginx
+        name: my-depl
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: my-vol
+          readOnly: true
+
+  #### Environment variable from Secret ####
+        #env:
+        #- name: SECRET_USERNAME
+        #  valueFrom:
+        #    secretKeyRef: # configMapKeyRef
+        #      name: mysecret
+        #      key: username
+  ########################
+
+  #### Liveness Probe ####
+        livenessProbe:
+          httpGet:
+            path: /index.html
+            port: 80
+            httpHeaders:
+            - name: Host
+              value: abc.example.com
+          initialDelaySeconds: 5
+          periodSeconds: 10
+  ########################
+
+  #### Readness Probe ####
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /usr/share/nginx/html/index.html
+          initialDelaySeconds: 3
+          periodSeconds: 1
+          failureThreshold: 3
+  ########################
+
+  #### Volumes ####
+      volumes:
+        - name: my-vol
+          hostPath:
+            path: /mnt
+            type: Directory
+  ########################
+
+  #### Volumes from secret ####
+        - name: foo
+          secret: # configMap
+            secretName: mysecret
+            items:
+            - key: username
+              path: my-group/my-username
+              mode: 511 # Decimal of 777
+  ########################

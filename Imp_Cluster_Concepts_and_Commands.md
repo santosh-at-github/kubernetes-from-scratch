@@ -24,6 +24,10 @@
  $ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
  $ apt-get update && apt-get install docker-ce docker-ce-cli containerd.io
 
+6. Change docker cgroup driver to systemd.
+ $ sed -i '/^ExecStart/ s/$/ --exec-opt native.cgroupdriver=systemd/' /lib/systemd/system/docker.service
+ $ systemctl daemon-reload && systemctl restart docker
+
 
 ## ETCD backup and restore
 ### Backup ETCD:
@@ -109,3 +113,40 @@ EOF
 
 OR use below kubectl command:
 $ kubectl create rolebinding user-rolebinding --role=user-role --user=user
+
+
+
+## VIM Shortcuts
+
+### Navigation shortcuts
+w - Move a word forward to the end of the word
+W - Move a word forward to the begining of the next word
+b - Move a word backward to the end of the previous word
+B - Move a word backward to the begingin of the previous word
+$ - Move to the end of the line
+0 - Move to the beginin of the line
+
+### Deletion
+dd - delete a line
+x - Delete one char
+dw - Delete a word
+D - Delete from current cursor position to end of the line.
+
+### Visual mode
+v - normal visual mode
+V - Line Visual mode
+Ctrl+v - Block visual mode
+  Select multiple line, press I to insert and type the text needed and then Esc to insert the same text to all selected line.
+
+### Search and replace
+:%s - search in the open doc
+:10,20s - search in lines 10 to 20
+
+
+## Aliases
+alias k=kubectl
+alias gp="kubectl get pod "
+alias gn="kubectl get node "
+alias dp="kubectl describe pod "
+alias dn="kubectl describe node "
+alias ka="kubectl apply -f "
