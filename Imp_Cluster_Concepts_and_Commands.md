@@ -144,9 +144,12 @@ Ctrl+v - Block visual mode
 
 
 ## Aliases
+source <(kubectl completion bash)
 alias k=kubectl
 alias gp="kubectl get pod "
 alias gn="kubectl get node "
 alias dp="kubectl describe pod "
 alias dn="kubectl describe node "
-alias ka="kubectl apply -f "
+alias a="kubectl apply -f "
+alias g="kubectl get "
+alias d="kubectl describe "
