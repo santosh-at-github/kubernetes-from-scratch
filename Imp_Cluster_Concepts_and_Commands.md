@@ -156,6 +156,11 @@ Ctrl+v - Block visual mode
 :10,20s - search in lines 10 to 20
 
 
+## Tmux Shortcuts
+<binding> z - to maximize one of the pane in a window
+<binding> : setw -g mode-keys vi - To activate vi mode in tmux
+In tmux command mode in vi, use v+space, V+space and C-v+space to start text selection, and enter to copy the selected texts.
+
 ## Aliases
 source <(kubectl completion bash)
 alias k=kubectl
@@ -163,6 +168,9 @@ alias kgp="kubectl get pod "
 alias kgn="kubectl get node "
 alias kdp="kubectl describe pod "
 alias kdn="kubectl describe node "
+alias kdd="kubectl describe deployment "
+alias kgd="kubectl get deployment "
+alias kr="kubectl run "
 alias ka="kubectl apply "
 alias kg="kubectl get "
 alias kd="kubectl describe "

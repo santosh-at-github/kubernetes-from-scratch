@@ -1,0 +1,46 @@
+# Persistent Volume
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: test2
+  labels:
+    type: amazonEBS
+spec:
+  capacity:
+    storage: 10Gi
+accessModes:
+  - ReadWriteOnce
+awsElasticBlockStore:
+  volumeID: vol-0b402cb854e070fad
+  fsType: ext4
+
+---
+# Persistent volume claim
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: task-pv-claimr
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Storage Class
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ssd
+# For a volume plugin which has "provisioner" do not necessary require PV.
+# Using PVC and StorageClass, the PV can be created directly (Dynamic provisioning)
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+reclaimPolicy: Retain
+mountOptions:
+  - debug
+volumeBindingMode: Immediate

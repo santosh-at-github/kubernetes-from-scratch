@@ -51,6 +51,7 @@ spec:
         - mountPath: /usr/share/nginx/html
           name: my-vol
           readOnly: true
+      #serviceAccountName: operator # By Default, "default" service account in the NS is used by pods to make api calls.
 
   #### Environment variable from Secret ####
         #env:

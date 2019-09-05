@@ -5,10 +5,11 @@ Controller="$2"
 echo -e "controller_node_count: $controller_node_count\n Controller: $Controller"
 
 # Colour codes
-Clr='\[\033[0m\]' # Clear
+Clr='\033[0m' # Clear
 Bold='\033[1m'
-Red='\[\033[0;31m\]'
-Green='\[\033[0;32m\]'
+Red='\033[0;31m'
+Green='\033[0;32m'
+Gb='\033[0;47m'
 
 work_dir="$HOME"
 cd $work_dir
@@ -49,7 +50,9 @@ is_running(){
     echo -e "$service is $Red $Bold not running $Clr\n"
 }
 
-# Install and configure ETCD
+###############################################################################
+#                   Install and configure ETCD                                #
+###############################################################################
 # yum install wget -y
 sudo apt-get update -qq && sudo apt-get install wget -y -qq
 wget -q --timestamping "https://github.com/coreos/etcd/releases/download/v3.3.9/etcd-v3.3.9-linux-amd64.tar.gz"
@@ -66,6 +69,8 @@ for data in $(echo $Controller | awk -F: '{for(i=1;i<=NF;i++){print $i}}'); do
   #eval "INITIAL_CLUSTER=$INITIAL_CLUSTER,\${Controller$i[3]}=https://\${Controller$i[1]}:2380"
 done
 INITIAL_CLUSTER="$(echo $INITIAL_CLUSTER|sed 's/^,//g')"
+# hostname1=https://ip1:2380,hostname2=https://ip2:2380,hostname3=https://ip3:2380
+# eg: ip-172-31-76-87.ec2.internal=https://172.31.76.87:2380,ip-172-31-67-201.ec2.internal=https://172.31.67.201:2380,ip-172-31-73-28.ec2.internal=https://172.31.73.28:2380
 
 cat << EOF | sudo tee /etc/systemd/system/etcd.service > /dev/null
 [Unit]
@@ -105,9 +110,14 @@ sudo systemctl start etcd
 is_successful $? "Configuration of ETCD"
 sleep 2
 is_running "etcd"
-exec_command 'Cluster Member list:' 'sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 --cacert=/etc/etcd/ca.pem --cert=/etc/etcd/kubernetes.pem --key=/etc/etcd/kubernetes-key.pem'
+exec_command 'Cluster Member list:' 'sudo ETCDCTL_API=3 etcdctl member list --endpoints=https://127.0.0.1:2379 \
+              --cacert=/etc/etcd/ca.pem --cert=/etc/etcd/kubernetes.pem --key=/etc/etcd/kubernetes-key.pem'
 
-#Install Kubernetes Control Plane compoenets
+
+###############################################################################
+#                   Download Control Plane compoenets                         #
+###############################################################################
+
 sudo mkdir -p /etc/kubernetes/config
 wget -q --timestamping \
   "https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kube-apiserver" \
@@ -118,13 +128,17 @@ chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
 sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
 is_successful $? "Installation of Control Plane Compoenets"
 
-#Configure API Server
+###############################################################################
+#                           Configure API Server                              #
+###############################################################################
+
 sudo mkdir -p /var/lib/kubernetes/
 sudo cp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem \
   encryption-config.yaml /var/lib/kubernetes/
 INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 for ip in $(echo "$Controller" | awk -F: '{for(i=1;i<=NF;i++){split($i,a,","); print a[2]}}'); do
   etcd_servers="$etcd_servers,https://$ip:2379"
+  # eg: https://172.31.76.87:2379,https://172.31.67.201:2379,https://172.31.73.28:2379
 done
 etcd_servers=$(echo $etcd_servers|sed 's/^,//')
 cat << EOF | sudo tee /etc/systemd/system/kube-apiserver.service > /dev/null
@@ -172,7 +186,10 @@ WantedBy=multi-user.target
 EOF
 cat_file "/etc/systemd/system/kube-apiserver.service"
 
-# Configure Controller Manager
+###############################################################################
+#                      Configure Controller Manager                           #
+###############################################################################
+
 sudo cp kube-controller-manager.kubeconfig /var/lib/kubernetes/
 cat << EOF | sudo tee /etc/systemd/system/kube-controller-manager.service > /dev/null
 [Unit]
@@ -201,7 +218,13 @@ WantedBy=multi-user.target
 EOF
 cat_file "/etc/systemd/system/kube-controller-manager.service"
 
-# Configuring Kube-Scheduler
+# 10.200.0.0/16 - CIDR Range for Pods in cluster
+# 10.32.0.0/24 - CIDR Range for Services in cluster
+
+###############################################################################
+#                      Configuring Kube-Scheduler                             #
+###############################################################################
+
 sudo cp kube-scheduler.kubeconfig /var/lib/kubernetes/
 cat << EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml > /dev/null
 apiVersion: componentconfig/v1alpha1
@@ -230,7 +253,10 @@ WantedBy=multi-user.target
 EOF
 cat_file "/etc/systemd/system/kube-scheduler.service"
 
-# Start the Kubernetes API server components
+###############################################################################
+#                 Start the Kubernetes API server components                  #
+###############################################################################
+
 sudo systemctl daemon-reload
 sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
 sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
@@ -240,7 +266,10 @@ for srv in "kube-apiserver" "kube-controller-manager" "kube-scheduler"; do
 done
 exec_command 'Components Status' "kubectl get componentstatuses --kubeconfig $work_dir/admin.kubeconfig"
 
-# Configure HTTP Heathcheck for Kube API server
+###############################################################################
+#              Configure HTTP Heathcheck for Kube API server                  #
+###############################################################################
+
 sudo apt-get install -qq -y nginx > /dev/null
 cat > kubernetes.default.svc.cluster.local << EOF
 server {
@@ -260,7 +289,10 @@ sudo systemctl restart nginx
 is_successful $? "Installation and configuration of Nginx"
 exec_command 'To confirm if Nginx is working fine' "curl -s -H 'Host: kubernetes.default.svc.cluster.local' -i http://127.0.0.1/healthz"
 
-# Enable IP forwarding for networking setup
+###############################################################################
+#              Enable IP forwarding for networking setup                       #
+###############################################################################
+
 sudo sysctl net.ipv4.conf.all.forwarding=1
 echo "net.ipv4.conf.all.forwarding=1" | sudo tee -a /etc/sysctl.conf
 is_successful $? "IP Forwarding enabled"

@@ -3,10 +3,11 @@
 Controller=$1
 
 # Colour codes
-Clr='\[\033[0m\]' # Clear
+Clr='\033[0m' # Clear
 Bold='\033[1m'
-Red='\[\033[0;31m\]'
-Green='\[\033[0;32m\]'
+Red='\033[0;31m'
+Green='\033[0;32m'
+Gb='\033[0;47m'
 
 # Functions
 cat_file(){

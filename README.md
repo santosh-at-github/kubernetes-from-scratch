@@ -8,3 +8,5 @@ Usages:
 
 Clone the repo and the cd to the "kubernetes-from-scratch" directory and then run:
  $ ./Kubernetes-From-Scratch.sh
+
+ Use -d to get more verbose ouput.

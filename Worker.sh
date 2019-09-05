@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Colour codes
-Clr='\[\033[0m\]' # Clear
+Clr='\033[0m' # Clear
 Bold='\033[1m'
-Red='\[\033[0;31m\]'
-Green='\[\033[0;32m\]'
+Red='\033[0;31m'
+Green='\033[0;32m'
+Gb='\033[0;47m'
 
 work_dir="$HOME"
 
@@ -63,7 +64,7 @@ sudo tar -xf cni-plugins-amd64-v0.6.0.tgz -C /opt/cni/bin/
 sudo tar -xf containerd-1.1.0.linux-amd64.tar.gz -C /
 is_successful $? "Installation of Worker binaries"
 
-# Configure COntainerd
+# Configure Containerd
 sudo mkdir -p /etc/containerd/
 cat << EOF | sudo tee /etc/containerd/config.toml >/dev/null
 [plugins]
